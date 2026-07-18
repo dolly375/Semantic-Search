@@ -1,0 +1,7 @@
+fastapi
+uvicorn[standard]
+numpy
+psycopg2-binary
+pgvector
+# Optional: sentence-transformers for local embeddings
+# sentence-transformers
