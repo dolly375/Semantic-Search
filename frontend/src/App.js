@@ -1,43 +1,155 @@
-import React, {useState} from 'react';
+import { useState } from "react";
+import "./App.css";
+import SearchBar from "./components/SearchBar";
+import ResultCard from "./components/ResultCard";
 
-export default function App(){
-  const [query, setQuery] = useState('');
-  const [results, setResults] = useState(null);
+function App() {
+
+  const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
-  async function doSearch(){
-    setLoading(true);
-    try{
-      const resp = await fetch('/search', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({query, top_k: 5})
-      });
-      const json = await resp.json();
-      setResults(json.results || []);
-    }catch(e){
-      console.error(e);
+
+  async function handleSearch(query) {
+
+    if (query.trim() === "") {
+
+      setError("Please enter symptoms.");
       setResults([]);
-    }finally{ setLoading(false); }
+
+      return;
+    }
+
+
+    try {
+
+      setLoading(true);
+      setError("");
+
+
+      // Backend API Call
+      const response = await fetch(
+        "http://localhost:8000/search",
+        {
+          method: "POST",
+
+          headers: {
+            "Content-Type": "application/json",
+          },
+
+          body: JSON.stringify({
+            query: query,
+          }),
+        }
+      );
+
+
+      if (!response.ok) {
+
+        const errorData = await response.json();
+
+        throw new Error(
+          errorData.message || "API Error"
+        );
+
+      }
+
+
+      const data = await response.json();
+
+
+      setResults(data);
+
+
+    } 
+    
+    catch (error) {
+
+      console.log(error);
+
+      setError(
+        error.message || "Something went wrong."
+      );
+
+    } 
+    
+    finally {
+
+      setLoading(false);
+
+    }
+
   }
 
+
+
   return (
-    <div style={{fontFamily:'Arial, sans-serif', padding:20}}>
-      <h2>Homeopathy EMR — Semantic Search (Demo)</h2>
-      <div>
-        <input value={query} onChange={e=>setQuery(e.target.value)} placeholder="Search clinical notes..." style={{width:'60%'}} />
-        <button onClick={doSearch} disabled={loading} style={{marginLeft:8}}>Search</button>
-      </div>
-      <div style={{marginTop:20}}>
-        {loading && <div>Searching...</div>}
-        {results && results.length===0 && <div>No results</div>}
-        {results && results.map(r => (
-          <div key={r.note_id} style={{borderBottom:'1px solid #eee', padding:8}}>
-            <strong>Note {r.note_id}</strong> — score: {r.score}
-            <div>{r.excerpt}</div>
-          </div>
+
+    <div className="container">
+
+      <div className="search-card">
+
+        <h1>
+          Semantic Search for Homeopathy EMR
+        </h1>
+
+
+        <SearchBar
+          onSearch={handleSearch}
+          loading={loading}
+        />
+
+
+        {error && (
+          <p style={{ color: "red" }}>
+            {error}
+          </p>
+        )}
+
+
+
+        {loading && (
+          <p>
+            Searching medicines...
+          </p>
+        )}
+
+
+
+        {results.map((item, index) => (
+
+          <ResultCard
+
+            key={index}
+
+            medicine={item.medicine}
+
+            score={item.score}
+
+            symptoms={item.symptoms}
+
+          />
+
         ))}
+
+
+
+        {results.length === 0 && !loading && !error && (
+
+          <p>
+            No results found.
+          </p>
+
+        )}
+
+
       </div>
+
     </div>
-  )
+
+  );
+
 }
+
+
+export default App;
